@@ -12,133 +12,116 @@ var args=(function() {
   }, { params: [] });
 })();
 
-function convert(wuPath, rtmPath, wuPath2) {
+function convert(rtmPath) {
 
   var icsText=fs.readFileSync(rtmPath, "utf8");
-  var data=JSON.parse(fs.readFileSync(wuPath, "utf8"));
+  var projects={};
 
-  var user=data.user;
-  var lists={};
-  data.data.lists.forEach(x=> {
-    lists[x.title.toLowerCase()]=x.id;
-  });
-  console.log("Converting the following tags to lists: "+Object.keys(lists).join(", "));
-
-  function mkTime(str) {
+  function mkDate(str) {
     if (str) return str.substr(0, 4)+"-"+str.substr(4, 2)+"-"+str.substr(6, 2);
     else return null;
   }
 
-  var reminders=[], tasks=[], notes=[];
-  var id=1200000001, rid=80000001;
+  function mkTime(str) {
+    if (str) {
+      const date = mkDate(str);
+      var iso = date+"T"+str.substr(9, 2)+":"+str.substr(11, 2)+":"+str.substr(13, 2)+"Z";
+      var d = new Date(iso);
+      const r = date+"@"+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds();
+      return r;
+    } else {
+      return null;
+    }
+  }
+
+  function tidyText(str) {
+    if (str) {
+      return str.replace(/\\/g, '');
+    } else {
+      return str;
+    }
+  }
 
   icalToolkit.parseToJSON(icsText, function (err, json) {
     if (err) throw err;
 
-    var todo=json.VCALENDAR[0].VTODO;
-    todo.forEach(x => {
+    var todos=json.VCALENDAR[0].VTODO;
+    todos.forEach(src => {
 
-      var title=x.SUMMARY;
-      var desc=x.DESCRIPTION; // 'Time estimate: none\\nTags: none\\nLocation: none\\n\\n',
-      var prio=x.PRIORITY; // 1-3
-      var due=x["DUE;VALUE=DATE"];
-      var repeat=x.RRULE; // FREQ=DAILY;INTERVAL=4
-
-      if (x.STATUS==="COMPLETED") return;
-      desc=desc.split("\\n");
-      var tags=desc[1].substr(6).split("\\, ");
-
-      var freq=(/FREQ=([^;]*)/.exec(repeat)||[0,""])[1];
-      var interval=(/INTERVAL=([^;]*)/.exec(repeat)||[0,1])[1];
-
-      var listId=lists["inbox"];
-      tags.forEach((x, i) => {
-        if (lists[x]) {
-          listId=lists[x];
-          tags.splice(i, 1);
-        }
-      });
-
-      tags.forEach((x) => { title+=" #"+x; });
-
-      var reminder;
-      var add={
-        "completed": false,
-        "created_by_id": user,
-        "id": id,
-        "list_id": listId,
-        "revision": 1,
-        "starred": false,
-        "title": title,
-        "type": "task"
+      var t = {
+        "type": "to-do",
+        "attributes": {}
       };
+      var a = t.attributes;
+      var completed = (src.STATUS === "COMPLETED");
+      a.title = tidyText(src.SUMMARY);
 
-      if (due) {
-        add.due_date=mkTime(due);
-        reminder={
-          "date": mkTime(due)+"T07:00:00.000Z",
-          "id": rid++,
-          "revision": 1,
-          "task_id": id,
-          "type": "reminder",
-        };
+      const deadline = mkDate(src["DUE;VALUE=DATE"]);
+      if (deadline)
+        a.deadline = deadline;
+      a.completed = completed;
+      if (completed) {
+        a.when = mkTime(src.COMPLETED);
       }
 
-      // check dups
-      if (!args.nodup && data.data.tasks.find(x => x.title===add.title && x.due_date==add.due_date && x.list_id===add.list_id))
-        return;
+      var notes = src.DESCRIPTION; // 'Time estimate: none\\nTags: none\\nLocation: none\\n\\n',
 
-      id++;
+      var line = notes.split("\\n");
+      var tags = line[1].substr(6).split("\\, ");
+      if (line[4]==="---") {
+        a.notes = tidyText(line.slice(5).join("\n"));
+      }
 
-      if (freq) {
-        add.recurrence_count=parseInt(interval, 10);
-        switch (freq) {
-          case "YEARLY": add.recurrence_type="year"; break;
-          case "MONTHLY": add.recurrence_type="month"; break;
-          case "WEEKLY": add.recurrence_type="week"; break;
-          case "DAILY": add.recurrence_type="day"; break;
-          default: throw new Error(freq);
+      var list;
+      if (tags.length === 1 && tags[0] === "none") {
+        list = "unsorted";
+        tags = [];
+      } else {
+        const i = tags.findIndex(tag => tag[0] === '+');
+        if (i >= 0) {
+          list = tags[i].substr(1);
+          tags.splice(i, 1);
+        } else {
+          list = "unknown";
+        }
+      }
+      a.tags = tags;
+
+      const url = src.URL;
+      if (url) {
+        if (a.notes) {
+          a.notes += "\nurl: "+url;
+        } else {
+          a.notes = url;
         }
       }
 
-      if (desc[4]==="---") {
-        console.log(desc);
-        desc=desc.slice(5).join("\n");
-        var note= {
-          "content": desc,
-          "id": rid++,
-          "revision": 1,
-          "task_id": id,
-          "type": "note"
-        };
-        notes.push(note);
+      if (projects[list] == null) {
+        projects[list] = [
+          {
+            type: "project",
+            attributes: {
+              title: list,
+              items: [],
+            },
+          },
+        ];
       }
-
-      tasks.push(add);
-      if (reminder) reminders.push(reminder);
+      projects[list][0].attributes.items.push(t);
     });
 
-    data.data.tasks=tasks;
-    data.data.notes=notes;
-    data.data.reminders=reminders;
-    data.data.subtasks=[];
-    data.data.task_positions=[];
-    data.data.subtask_positions=[];
-    fs.writeFileSync(wuPath2, JSON.stringify(data), "utf8");
-
-    console.log("Found "+tasks.length+" open tasks");
-    Object.keys(lists).forEach(name=> {
-      var list=tasks.filter(x => x.list_id===lists[name]);
-      console.log(name+" ("+list.length+")");
-      list.forEach(x => console.log(" - "+x.title));
-    });
+    Object.keys(projects).forEach(project => {
+      var json = JSON.stringify(projects[project]);
+      fs.writeFileSync("out/"+project+".json", json, "utf8");
+      var script = "open 'things:///add-json?data="+encodeURI(json)+"'";
+      fs.writeFileSync("out/"+project+".sh", script, "utf8");
+    })
   });
-
 }
 
 
-if (args.params.length<3) {
-  console.log("usage: wundermilk [options] WUNDERLIST-IN ICS-IN WUNDERLIST-OUT");
+if (args.params.length<1) {
+  console.log("usage: wundermilk [options] ICS-IN");
   console.log("The options are as follows:");
   console.log("-nodup  do not check for duplicates");
 } else {
