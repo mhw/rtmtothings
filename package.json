@@ -18,7 +18,7 @@
   ],
   "dependencies": {
     "ical-toolkit": "^1.0.9",
-    "node-uuid": "^1.4.8"
+    "uuid": "^3.2.1"
   },
   "bin": {
     "rtmtothings": "./convert.js"

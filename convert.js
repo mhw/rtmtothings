@@ -3,7 +3,7 @@
 var fs=require("fs");
 var path=require("path");
 var icalToolkit=require("ical-toolkit");
-const uuid = require('node-uuid');
+const uuid = require('uuid/v4');
 
 var args=(function() {
   return process.argv.slice(2).reduce(function(args, x) {
@@ -77,7 +77,7 @@ function convert(rtmPath) {
       a.completed = completed;
       if (completed) {
         if (args.sqlfix) {
-          const id = uuid.v4();
+          const id = uuid();
           sql.push(mkTimeFix(id, title, src.COMPLETED));
           title = id;
         } else {
