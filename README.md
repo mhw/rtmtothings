@@ -1,6 +1,8 @@
 # rtmtothings
 
-`rtmtothings` can convert your tasks from RTM (Remember the Milk) to Things 3.
+`rtmtothings` can convert your tasks from
+[Remember the Milk](https://www.rememberthemilk.com/) (RTM) to
+[Things 3](https://culturedcode.com/things/).
 It takes the iCal export file that RTM can produce and converts it into
 requests that can be sent to the
 [Things 3 URL Scheme's `add-json` command](https://support.culturedcode.com/customer/en/portal/articles/2803573#add-json).
