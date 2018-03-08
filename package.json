@@ -1,27 +1,35 @@
 {
-  "name": "wundermilk",
-  "description": "Convert your tasks from RTM (remember the milk) to Wunderlist",
-  "author": "Christian Zangl",
+  "name": "rtmtothings",
   "version": "0.0.1",
+  "description": "Convert your tasks from RTM (Remember the Milk) to Things 3",
+  "author": {
+    "name": "Mark H. Wilkinson"
+  },
+  "contributors": [
+    {
+      "name": "Christian Zangl",
+      "url": "https://github.com/laktak"
+    }
+  ],
   "keywords": [
     "rtm",
     "rememberthemilk",
-    "wunderlist"
+    "things3"
   ],
   "dependencies": {
     "ical-toolkit": "^1.0.9",
     "node-uuid": "^1.4.8"
   },
   "bin": {
-    "wundermilk": "./convert.js"
+    "rtmtothings": "./convert.js"
   },
-  "homepage": "https://github.com/laktak/wundermilk",
+  "homepage": "https://github.com/mhw/rtmtothings",
   "repository": {
     "type": "git",
-    "url": "https://github.com/laktak/wundermilk.git"
+    "url": "https://github.com/mhw/rtmtothings.git"
   },
   "bugs": {
-    "url": "https://github.com/laktak/wundermilk/issues"
+    "url": "https://github.com/mhw/rtmtothings/issues"
   },
   "license": "MIT"
 }
