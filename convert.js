@@ -119,7 +119,7 @@ function convert(rtmPath) {
       }
 
       const repeat = src.RRULE;
-      if (!args['no-repeat'] && repeat) {
+      if (!args['no-repeat'] && !completed && repeat) {
         if (a.notes) {
           a.notes += "\nrepeat: "+repeat;
         } else {
