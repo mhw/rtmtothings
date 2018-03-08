@@ -69,47 +69,32 @@ create a tag in Things called `rtm-repeat`.
 
 ## Step 4
 
-Install wundermilk: `npm i wundermilk -g`
+Install rtmtothings: `npm i rtmtothings -g`
 
-Convert your tasks from ICS to the Wunderlist JSON format:
-
-```
-wundermilk WUNDERLIST-IN ICS-IN WUNDERLIST-OUT
-```
-
-- WUNDERLIST-IN: File downloaded in step 1
-- ICS-IN: File downloaded in step 2
-- WUNDERLIST-OUT: new JSON file (e.g. converted.json)
-
-wundermilk will report the tasks it found:
+Convert your tasks from ICS to the Things 3 JSON format:
 
 ```
-Converting the following tags to lists: inbox, futures, work, misc
-Found 26 open tasks
-inbox (3)
- - world domination
- - just kidding
- - really
-futures (17)
-[..]
+$ rtmtothings -completed -sqlfix <rtm-export-file>
 ```
-
-If you get an error see [#1](https://github.com/laktak/wundermilk/issues/1) for a possible solution.
 
 ## Step 4
 
-Go to https://www.wunderlist.com, again in your favorite browser.
+Import into Things 3.
 
-Click on the icon next to your name and then `Account settings`, click on `Import Backup Data` and specify the file you just created (eg. converted.json).
-
-Your tasks should now be visible in Wunderlist. You will have to clean up any duplicate folders manually (that's just how the import works).
+```
+$ for i in out/*.sh; do bash $i; read foo; done
+```
 
 ## Step 5
 
-You are on you own now. Have fun. Or complete some tasks.
+Fix completion times for to-dos in the Logbook.
+First, quit Things. Then:
 
-## Step 6
-
-OK, some final advice. I used this tool once, it worked for me but YMMV. If you find a problem please fix it yourself (PR).
-
-Oh and sorry but I hardcoded the due time to 7:00Z :)
+```
+$ sqlite3 -init out/fix-completed.sql "$HOME/Library/Containers/com.culturedcode.ThingsMac/Data/Library/Application Support/Cultured Code/Things/Things.sqlite3"
+-- Loading resources from out/fix-completed.sql
+SQLite version 3.19.3 2017-06-27 16:48:08
+Enter ".help" for usage hints.
+sqlite> ^D
+$
+```
