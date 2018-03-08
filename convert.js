@@ -114,7 +114,7 @@ function convert(rtmPath) {
         if (a.notes) {
           a.notes += "\nurl: "+url;
         } else {
-          a.notes = url;
+          a.notes = `url: ${url}`;
         }
       }
 
