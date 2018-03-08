@@ -64,6 +64,11 @@ Go to http://www.rememberthemilk.com/icalendar/YOURUSERNAME (replace `YOURUSERNA
 
 ## Step 3
 
+If you want to be able to locate to-dos that were repeating tasks in RTM,
+create a tag in Things called `rtm-repeat`.
+
+## Step 4
+
 Install wundermilk: `npm i wundermilk -g`
 
 Convert your tasks from ICS to the Wunderlist JSON format:
