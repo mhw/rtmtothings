@@ -118,6 +118,16 @@ function convert(rtmPath) {
         }
       }
 
+      const repeat = src.RRULE;
+      if (!args['no-repeat'] && repeat) {
+        if (a.notes) {
+          a.notes += "\nrepeat: "+repeat;
+        } else {
+          a.notes = `repeat: ${repeat}`;
+        }
+        a.tags.push('rtm-repeat');
+      }
+
       if (projects[list] == null) {
         projects[list] = [
           {
@@ -150,6 +160,7 @@ if (args.params.length<1) {
   console.log("The options are as follows:");
   console.log("-completed  include completed tasks");
   console.log("-sqlfix     generate SQL to set historic completion times");
+  console.log("-no-repeat  don't include repeat information");
 } else {
   convert.apply(null, args.params);
 }
