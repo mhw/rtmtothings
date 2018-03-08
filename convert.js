@@ -145,7 +145,7 @@ function convert(rtmPath) {
     Object.keys(projects).forEach(project => {
       var json = JSON.stringify(projects[project]);
       fs.writeFileSync("out/"+project+".json", json, "utf8");
-      var script = "open 'things:///add-json?data="+encodeURI(json)+"'";
+      var script = "open $'things:///add-json?data="+encodeURIComponent(json).replace(/'/g, "\\'")+"'";
       fs.writeFileSync("out/"+project+".sh", script, "utf8");
     });
     if (sql.length > 0) {
