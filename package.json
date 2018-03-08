@@ -9,7 +9,8 @@
     "wunderlist"
   ],
   "dependencies": {
-    "ical-toolkit": "^1.0.9"
+    "ical-toolkit": "^1.0.9",
+    "node-uuid": "^1.4.8"
   },
   "bin": {
     "wundermilk": "./convert.js"

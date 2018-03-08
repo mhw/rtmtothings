@@ -3,6 +3,7 @@
 var fs=require("fs");
 var path=require("path");
 var icalToolkit=require("ical-toolkit");
+const uuid = require('node-uuid');
 
 var args=(function() {
   return process.argv.slice(2).reduce(function(args, x) {
@@ -16,6 +17,7 @@ function convert(rtmPath) {
 
   var icsText=fs.readFileSync(rtmPath, "utf8");
   var projects={};
+  let sql = [];
 
   function mkDate(str) {
     if (str) return str.substr(0, 4)+"-"+str.substr(4, 2)+"-"+str.substr(6, 2);
@@ -32,6 +34,15 @@ function convert(rtmPath) {
     } else {
       return null;
     }
+  }
+
+  function mkTimeFix(id, title, ts) {
+    const date = mkDate(ts);
+    const iso = date+"T"+ts.substr(9, 2)+":"+ts.substr(11, 2)+":"+ts.substr(13, 2)+"Z";
+    const d = new Date(iso);
+    const secs = d.getTime()/1000;
+    title = title.replace(/'/g, "''");
+    return `UPDATE TMTask SET title = '${title}', stopDate = '${secs}' WHERE title = '${id}';`
   }
 
   function tidyText(str) {
@@ -53,15 +64,20 @@ function convert(rtmPath) {
         "attributes": {}
       };
       var a = t.attributes;
-      var completed = (src.STATUS === "COMPLETED");
-      a.title = tidyText(src.SUMMARY);
+      const completed = (src.STATUS === "COMPLETED");
+      const title = tidyText(src.SUMMARY);
 
       const deadline = mkDate(src["DUE;VALUE=DATE"]);
       if (deadline)
         a.deadline = deadline;
       a.completed = completed;
       if (completed) {
-        a.when = mkTime(src.COMPLETED);
+        const id = uuid.v4();
+        a.title = id;
+        // a.when = mkTime(src.COMPLETED);
+        sql.push(mkTimeFix(id, title, src.COMPLETED));
+      } else {
+        a.title = title;
       }
 
       var notes = src.DESCRIPTION; // 'Time estimate: none\\nTags: none\\nLocation: none\\n\\n',
@@ -115,7 +131,8 @@ function convert(rtmPath) {
       fs.writeFileSync("out/"+project+".json", json, "utf8");
       var script = "open 'things:///add-json?data="+encodeURI(json)+"'";
       fs.writeFileSync("out/"+project+".sh", script, "utf8");
-    })
+    });
+    fs.writeFileSync("out/fix-completed.sql", sql.join("\n"), "utf8");
   });
 }
 
