@@ -58,27 +58,33 @@ function convert(rtmPath) {
 
     var todos=json.VCALENDAR[0].VTODO;
     todos.forEach(src => {
+      const completed = (src.STATUS === "COMPLETED");
+
+      if (!args.completed && completed) {
+        return;
+      }
 
       var t = {
         "type": "to-do",
         "attributes": {}
       };
       var a = t.attributes;
-      const completed = (src.STATUS === "COMPLETED");
-      const title = tidyText(src.SUMMARY);
+      let title = tidyText(src.SUMMARY);
 
       const deadline = mkDate(src["DUE;VALUE=DATE"]);
       if (deadline)
         a.deadline = deadline;
       a.completed = completed;
       if (completed) {
-        const id = uuid.v4();
-        a.title = id;
-        // a.when = mkTime(src.COMPLETED);
-        sql.push(mkTimeFix(id, title, src.COMPLETED));
-      } else {
-        a.title = title;
+        if (args.sqlfix) {
+          const id = uuid.v4();
+          sql.push(mkTimeFix(id, title, src.COMPLETED));
+          title = id;
+        } else {
+          a.when = mkTime(src.COMPLETED);
+        }
       }
+      a.title = title;
 
       var notes = src.DESCRIPTION; // 'Time estimate: none\\nTags: none\\nLocation: none\\n\\n',
 
@@ -132,15 +138,18 @@ function convert(rtmPath) {
       var script = "open 'things:///add-json?data="+encodeURI(json)+"'";
       fs.writeFileSync("out/"+project+".sh", script, "utf8");
     });
-    fs.writeFileSync("out/fix-completed.sql", sql.join("\n"), "utf8");
+    if (sql.length > 0) {
+      fs.writeFileSync("out/fix-completed.sql", sql.join("\n"), "utf8");
+    }
   });
 }
 
 
 if (args.params.length<1) {
-  console.log("usage: wundermilk [options] ICS-IN");
+  console.log("usage: rtmtothings [options] ICS-IN");
   console.log("The options are as follows:");
-  console.log("-nodup  do not check for duplicates");
+  console.log("-completed  include completed tasks");
+  console.log("-sqlfix     generate SQL to set historic completion times");
 } else {
   convert.apply(null, args.params);
 }
