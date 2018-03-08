@@ -53,6 +53,18 @@ function convert(rtmPath) {
     }
   }
 
+  function emptyProject(list) {
+    return [
+      {
+        type: "project",
+        attributes: {
+          title: list,
+          items: [],
+        },
+      },
+    ];
+  }
+
   icalToolkit.parseToJSON(icsText, function (err, json) {
     if (err) throw err;
 
@@ -129,15 +141,15 @@ function convert(rtmPath) {
       }
 
       if (projects[list] == null) {
-        projects[list] = [
-          {
-            type: "project",
-            attributes: {
-              title: list,
-              items: [],
-            },
-          },
-        ];
+        projects[list] = emptyProject(list);
+      }
+      if (projects[list][0].attributes.items.length > 600) {
+        let i = 1;
+        while (projects[`${list}-${i}`] != null) {
+          i += 1;
+        }
+        projects[`${list}-${i}`] = projects[list];
+        projects[list] = emptyProject(list);
       }
       projects[list][0].attributes.items.push(t);
     });
