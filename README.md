@@ -35,6 +35,8 @@ complete and have completion dates in the past.
 To work around this you can optionally create a SQL script that will
 update the Things 3 database directly after import,
 but this approach is not supported by Cultured Code so use at your own risk.
+At the moment the updates don't get pushed to Things Cloud,
+so this isn't working correctly yet.
 
 * Tags on to-do items are only imported if the tag already exists in
 Things 3.
@@ -76,7 +78,7 @@ Install rtmtothings: `npm i rtmtothings -g`
 Convert your tasks from ICS to the Things 3 JSON format:
 
 ```
-$ rtmtothings -completed -sqlfix <rtm-export-file>
+$ rtmtothings <rtm-export-file>
 ```
 
 ## Step 4
