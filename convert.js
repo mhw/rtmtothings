@@ -22,7 +22,20 @@ var args = (function() {
 function convert(rtmPath) {
   var icsText = fs.readFileSync(rtmPath, 'utf8');
   var projects = {};
-  let sql = [];
+  let fixScript = [
+    `var things = Application('Things');
+
+function setTimeAndTitle(name, time, newName) {
+  var d = new Date(time);
+  var t = things.toDos[name];
+  try {
+    t.completionDate = d;
+    t.name = title;
+    console.log(\`updated "\${newName}"\`);
+  } catch (e) {}
+}
+`,
+  ];
 
   function mkDate(str) {
     if (str)
@@ -63,9 +76,9 @@ function convert(rtmPath) {
       ts.substr(13, 2) +
       'Z';
     const d = new Date(iso);
-    const secs = d.getTime() / 1000;
-    title = title.replace(/'/g, "''");
-    return `UPDATE TMTask SET title = '${title}', stopDate = '${secs}' WHERE title = '${id}';`;
+    const millis = d.getTime();
+    title = title.replace(/'/g, "\\'");
+    return `setTimeAndTitle('${id}', ${millis}, '${title}');`;
   }
 
   function tidyText(str) {
@@ -110,13 +123,9 @@ function convert(rtmPath) {
       if (deadline) a.deadline = deadline;
       a.completed = completed;
       if (completed) {
-        if (args.sqlfix) {
-          const id = uuid();
-          sql.push(mkTimeFix(id, title, src.COMPLETED));
-          title = id;
-        } else {
-          a.when = mkTime(src.COMPLETED);
-        }
+        const id = uuid();
+        fixScript.push(mkTimeFix(id, title, src.COMPLETED));
+        title = id;
       }
       a.title = title;
 
@@ -185,8 +194,8 @@ function convert(rtmPath) {
         "'";
       fs.writeFileSync('out/' + project + '.sh', script, 'utf8');
     });
-    if (sql.length > 0) {
-      fs.writeFileSync('out/fix-completed.sql', sql.join('\n'), 'utf8');
+    if (fixScript.length > 1) {
+      fs.writeFileSync('out/fix-completed.js', fixScript.join('\n'), 'utf8');
     }
   });
 }
@@ -195,7 +204,6 @@ if (args.params.length < 1) {
   console.log('usage: rtmtothings [options] ICS-IN');
   console.log('The options are as follows:');
   console.log('-completed  include completed tasks');
-  console.log('-sqlfix     generate SQL to set historic completion times');
   console.log("-no-repeat  don't include repeat information");
 } else {
   convert.apply(null, args.params);

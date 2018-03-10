@@ -32,11 +32,8 @@ There are also some limitations on the Things 3 side:
 
 * `add-json` does not support creating to-do items that are
 complete and have completion dates in the past.
-To work around this you can optionally create a SQL script that will
-update the Things 3 database directly after import,
-but this approach is not supported by Cultured Code so use at your own risk.
-At the moment the updates don't get pushed to Things Cloud,
-so this isn't working correctly yet.
+To work around this, `rtmtothings` creates a JavaScript for Automation
+script that will update the completed items in Things 3 after import.
 
 * Tags on to-do items are only imported if the tag already exists in
 Things 3.
@@ -95,10 +92,7 @@ Fix completion times for to-dos in the Logbook.
 First, quit Things. Then:
 
 ```
-$ sqlite3 -init out/fix-completed.sql "$HOME/Library/Containers/com.culturedcode.ThingsMac/Data/Library/Application Support/Cultured Code/Things/Things.sqlite3"
--- Loading resources from out/fix-completed.sql
-SQLite version 3.19.3 2017-06-27 16:48:08
-Enter ".help" for usage hints.
-sqlite> ^D
+$ osascript -l JavaScript out/fix-completed.js
+<information about updated to-dos>
 $
 ```
