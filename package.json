@@ -17,8 +17,7 @@
     "things3"
   ],
   "dependencies": {
-    "ical-toolkit": "^1.0.9",
-    "uuid": "^3.2.1"
+    "ical-toolkit": "^1.0.9"
   },
   "bin": {
     "rtmtothings": "./convert.js"

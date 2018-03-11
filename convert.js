@@ -3,7 +3,6 @@
 var fs = require('fs');
 var path = require('path');
 var icalToolkit = require('ical-toolkit');
-const uuid = require('uuid/v4');
 
 var args = (function() {
   return process.argv.slice(2).reduce(
@@ -22,63 +21,30 @@ var args = (function() {
 function convert(rtmPath) {
   var icsText = fs.readFileSync(rtmPath, 'utf8');
   var projects = {};
-  let fixScript = [
-    `var things = Application('Things');
 
-function setTimeAndTitle(name, time, newName) {
-  var d = new Date(time);
-  var t = things.toDos[name];
-  try {
-    t.completionDate = d;
-    t.name = title;
-    console.log(\`updated "\${newName}"\`);
-  } catch (e) {}
-}
-`,
-  ];
-
-  function mkDate(str) {
-    if (str)
-      return str.substr(0, 4) + '-' + str.substr(4, 2) + '-' + str.substr(6, 2);
-    else return null;
+  function mkDateStr(str) {
+    return str.substr(0, 4) + '-' + str.substr(4, 2) + '-' + str.substr(6, 2);
   }
 
-  function mkTime(str) {
+  function mkDate(str) {
     if (str) {
-      const date = mkDate(str);
-      var iso =
-        date +
-        'T' +
-        str.substr(9, 2) +
-        ':' +
-        str.substr(11, 2) +
-        ':' +
-        str.substr(13, 2) +
-        'Z';
-      var d = new Date(iso);
-      const r =
-        date + '@' + d.getHours() + ':' + d.getMinutes() + ':' + d.getSeconds();
-      return r;
+      return new Date(mkDateStr(str));
     } else {
       return null;
     }
   }
 
-  function mkTimeFix(id, title, ts) {
-    const date = mkDate(ts);
-    const iso =
-      date +
-      'T' +
-      ts.substr(9, 2) +
-      ':' +
-      ts.substr(11, 2) +
-      ':' +
-      ts.substr(13, 2) +
-      'Z';
-    const d = new Date(iso);
-    const millis = d.getTime();
-    title = title.replace(/'/g, "\\'");
-    return `setTimeAndTitle('${id}', ${millis}, '${title}');`;
+  function mkTimeStr(str) {
+    return str.substr(9, 2) + ':' + str.substr(11, 2) + ':' + str.substr(13, 2);
+  }
+
+  function mkTime(str) {
+    if (str) {
+      const iso = mkDateStr(str) + 'T' + mkTimeStr(str) + 'Z';
+      return new Date(iso);
+    } else {
+      return null;
+    }
   }
 
   function tidyText(str) {
@@ -90,15 +56,63 @@ function setTimeAndTitle(name, time, newName) {
   }
 
   function emptyProject(list) {
-    return [
-      {
-        type: 'project',
-        attributes: {
-          title: list,
-          items: [],
-        },
-      },
+    return {
+      name: list,
+      items: [],
+    };
+  }
+
+  function script(project) {
+    const s = [
+      `var areaName = "Remember the Milk";
+var projectName = '${project.name}';
+
+var things = Application('Things');
+var area = things.areas[areaName];
+
+try {
+  area.name();
+} catch (e) {
+  area = things.Area({ name: areaName });
+  things.areas.push(area);
+}
+
+var project = things.projects[projectName];
+
+try {
+  project.name();
+} catch (e) {
+  project = things.Project({ name: projectName, area });
+  things.projects.push(project);
+}
+
+var toDo;
+`,
     ];
+
+    project.items.forEach(toDo => {
+      s.push(`toDo = things.ToDo({`);
+      s.push(`  name: ${JSON.stringify(toDo.name)},`);
+      s.push(`  status: ${JSON.stringify(toDo.status)},`);
+      if (toDo.tags.length > 0) {
+        s.push(`  tagNames: ${JSON.stringify(toDo.tags.join(','))},`);
+      }
+      if (toDo.notes) {
+        s.push(`  notes: ${JSON.stringify(toDo.notes)},`);
+      }
+      if (toDo.dueDate) {
+        s.push(`  dueDate: new Date(${toDo.dueDate.getTime()}),`);
+      }
+      if (toDo.completionDate) {
+        s.push(`  completionDate: new Date(${toDo.completionDate.getTime()}),`);
+      }
+      s.push(`  project,`);
+      s.push(`});`);
+      s.push(`things.toDos.push(toDo);`);
+      s.push(``);
+    });
+
+    return s.join('\n');
   }
 
   icalToolkit.parseToJSON(icsText, function(err, json) {
@@ -112,29 +126,29 @@ function setTimeAndTitle(name, time, newName) {
         return;
       }
 
-      var t = {
-        type: 'to-do',
-        attributes: {},
+      var toDo = {
+        name: tidyText(src.SUMMARY),
+        status: completed ? 'completed' : 'open',
       };
-      var a = t.attributes;
-      let title = tidyText(src.SUMMARY);
 
-      const deadline = mkDate(src['DUE;VALUE=DATE']);
-      if (deadline) a.deadline = deadline;
-      a.completed = completed;
-      if (completed) {
-        const id = uuid();
-        fixScript.push(mkTimeFix(id, title, src.COMPLETED));
-        title = id;
+      const due = src['DUE;VALUE=DATE'];
+      if (due) {
+        toDo.dueDate = mkDate(due);
       }
-      a.title = title;
+
+      if (completed) {
+        const completionTime = src.COMPLETED;
+        if (completionTime) {
+          toDo.completionDate = mkTime(completionTime);
+        }
+      }
 
       var notes = src.DESCRIPTION; // 'Time estimate: none\\nTags: none\\nLocation: none\\n\\n',
 
       var line = notes.split('\\n');
       var tags = line[1].substr(6).split('\\, ');
       if (line[4] === '---') {
-        a.notes = tidyText(line.slice(5).join('\n'));
+        toDo.notes = tidyText(line.slice(5).join('\n'));
       }
 
       var list;
@@ -150,53 +164,39 @@ function setTimeAndTitle(name, time, newName) {
           list = 'unknown';
         }
       }
-      a.tags = tags;
+      toDo.tags = tags;
 
       const url = src.URL;
       if (url) {
-        if (a.notes) {
-          a.notes += '\nurl: ' + url;
+        if (toDo.notes) {
+          toDo.notes += '\nurl: ' + url;
         } else {
-          a.notes = `url: ${url}`;
+          toDo.notes = `url: ${url}`;
         }
       }
 
       const repeat = src.RRULE;
       if (!args['no-repeat'] && !completed && repeat) {
-        if (a.notes) {
-          a.notes += '\nrepeat: ' + repeat;
+        if (toDo.notes) {
+          toDo.notes += '\nrepeat: ' + repeat;
         } else {
-          a.notes = `repeat: ${repeat}`;
+          toDo.notes = `repeat: ${repeat}`;
         }
-        a.tags.push('rtm-repeat');
+        toDo.tags.push('rtm-repeat');
       }
 
       if (projects[list] == null) {
         projects[list] = emptyProject(list);
       }
-      if (projects[list][0].attributes.items.length > 600) {
-        let i = 1;
-        while (projects[`${list}-${i}`] != null) {
-          i += 1;
-        }
-        projects[`${list}-${i}`] = projects[list];
-        projects[list] = emptyProject(list);
-      }
-      projects[list][0].attributes.items.push(t);
+      projects[list].items.push(toDo);
     });
 
-    Object.keys(projects).forEach(project => {
-      var json = JSON.stringify(projects[project]);
-      fs.writeFileSync('out/' + project + '.json', json, 'utf8');
-      var script =
-        "open $'things:///add-json?data=" +
-        encodeURIComponent(json).replace(/'/g, "\\'") +
-        "'";
-      fs.writeFileSync('out/' + project + '.sh', script, 'utf8');
+    Object.keys(projects).forEach(projectName => {
+      const project = projects[projectName];
+      var json = JSON.stringify(project);
+      fs.writeFileSync('out/' + projectName + '.json', json, 'utf8');
+      fs.writeFileSync('out/' + projectName + '.js', script(project), 'utf8');
     });
-    if (fixScript.length > 1) {
-      fs.writeFileSync('out/fix-completed.js', fixScript.join('\n'), 'utf8');
-    }
   });
 }
 
