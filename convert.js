@@ -113,6 +113,9 @@ var toDo;
       if (toDo.notes) {
         s.push(`  notes: ${JSON.stringify(toDo.notes)},`);
       }
+      if (toDo.creationDate) {
+        s.push(`  creationDate: new Date(${toDo.creationDate.getTime()}),`);
+      }
       if (toDo.dueDate) {
         s.push(`  dueDate: new Date(${toDo.dueDate.getTime()}),`);
       }
@@ -144,6 +147,7 @@ var toDo;
         status: completed ? 'completed' : 'open',
       };
 
+      toDo.creationDate = getDateProperty(src, 'DTSTART');
       toDo.dueDate = getDateProperty(src, 'DUE');
       if (completed) {
         toDo.completionDate = getDateProperty(src, 'COMPLETED');
