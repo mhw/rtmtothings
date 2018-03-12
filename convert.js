@@ -23,35 +23,37 @@ function convert(rtmPath) {
   var icsText = fs.readFileSync(rtmPath, 'utf8');
   var projects = {};
 
-  function getField(src, field) {
-    const value = src[field];
-    if (value) return { field, value };
+  function getProperty(src, property) {
+    const value = src[property];
+    if (value) return { parameter: null, value };
     for (var prop in src) {
       const parts = prop.split(';')
-      if (parts[0] === field) {
+      if (parts[0] === property) {
         return {
-          field: parts[1],
+          parameter: parts[1],
           value: src[prop],
         };
       }
     }
     return {
-      field: null,
+      parameter: null,
       value: null,
     };
   }
 
-  function getDateField(src, fieldName) {
-    const { field, value } = getField(src, fieldName);
+  function getDateProperty(src, property) {
+    const { parameter, value } = getProperty(src, property);
     if (value) {
-      if (field === 'VALUE=DATE') {
+      if (parameter === null) {
+        return moment.utc(value, 'YYYYMMDDTHHmmssZ').toDate();
+      } else if (parameter === 'VALUE=DATE') {
         return moment.utc(value, 'YYYYMMDD').toDate();
       } else {
-        const parts = field.split('=');
+        const parts = parameter.split('=');
         if (parts[0] === 'TZID') {
           return moment.tz(value, 'YYYYMMDDTHHmmss', parts[1]).toDate();
         } else {
-          console.log(`unrecognised ${fieldName} type: '${field}'`);
+          console.log(`unrecognised ${property} parameter: '${parameter}'`);
         }
       }
     }
@@ -167,8 +169,8 @@ var toDo;
         status: completed ? 'completed' : 'open',
       };
 
-      toDo.dueDate = getDateField(src, 'DUE');
 
+      toDo.dueDate = getDateProperty(src, 'DUE');
       if (completed) {
         const completionTime = src.COMPLETED;
         if (completionTime) {
