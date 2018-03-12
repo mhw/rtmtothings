@@ -108,7 +108,7 @@ var toDo;
       s.push(`  name: ${JSON.stringify(toDo.name)},`);
       s.push(`  status: ${JSON.stringify(toDo.status)},`);
       if (toDo.tags.length > 0) {
-        s.push(`  tagNames: ${JSON.stringify(toDo.tags.join(','))},`);
+        s.push(`  tagNames: ${JSON.stringify(toDo.tags.join())},`);
       }
       if (toDo.notes) {
         s.push(`  notes: ${JSON.stringify(toDo.notes)},`);
