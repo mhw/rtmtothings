@@ -60,31 +60,6 @@ function convert(rtmPath) {
     return null;
   }
 
-  function mkDateStr(str) {
-    return str.substr(0, 4) + '-' + str.substr(4, 2) + '-' + str.substr(6, 2);
-  }
-
-  function mkDate(str) {
-    if (str) {
-      return new Date(mkDateStr(str));
-    } else {
-      return null;
-    }
-  }
-
-  function mkTimeStr(str) {
-    return str.substr(9, 2) + ':' + str.substr(11, 2) + ':' + str.substr(13, 2);
-  }
-
-  function mkTime(str) {
-    if (str) {
-      const iso = mkDateStr(str) + 'T' + mkTimeStr(str) + 'Z';
-      return new Date(iso);
-    } else {
-      return null;
-    }
-  }
-
   function tidyText(str) {
     if (str) {
       return str.replace(/\\/g, '');
