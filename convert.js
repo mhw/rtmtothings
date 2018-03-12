@@ -110,8 +110,8 @@ var toDo;
       if (toDo.tags.length > 0) {
         s.push(`  tagNames: ${JSON.stringify(toDo.tags.join())},`);
       }
-      if (toDo.notes) {
-        s.push(`  notes: ${JSON.stringify(toDo.notes)},`);
+      if (toDo.notes.length > 0) {
+        s.push(`  notes: ${JSON.stringify(toDo.notes.join('\n'))},`);
       }
       if (toDo.creationDate) {
         s.push(`  creationDate: new Date(${toDo.creationDate.getTime()}),`);
@@ -145,6 +145,7 @@ var toDo;
       var toDo = {
         name: tidyText(src.SUMMARY),
         status: completed ? 'completed' : 'open',
+        notes: [],
       };
 
       toDo.creationDate = getDateProperty(src, 'DTSTART');
@@ -158,7 +159,8 @@ var toDo;
       var line = notes.split('\\n');
       var tags = line[1].substr(6).split('\\, ');
       if (line[4] === '---') {
-        toDo.notes = tidyText(line.slice(5).join('\n'));
+        const notes = line.slice(5);
+        Array.prototype.push.apply(toDo.notes, notes.map(tidyText));
       }
 
       var list;
@@ -178,20 +180,12 @@ var toDo;
 
       const url = src.URL;
       if (url) {
-        if (toDo.notes) {
-          toDo.notes += '\nurl: ' + url;
-        } else {
-          toDo.notes = `url: ${url}`;
-        }
+        toDo.notes.push(`url: ${url}`);
       }
 
       const repeat = src.RRULE;
       if (!args['no-repeat'] && !completed && repeat) {
-        if (toDo.notes) {
-          toDo.notes += '\nrepeat: ' + repeat;
-        } else {
-          toDo.notes = `repeat: ${repeat}`;
-        }
+        toDo.notes.push(`repeat: ${repeat}`);
         toDo.tags.push('rtm-repeat');
       }
 
