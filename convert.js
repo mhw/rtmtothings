@@ -169,13 +169,9 @@ var toDo;
         status: completed ? 'completed' : 'open',
       };
 
-
       toDo.dueDate = getDateProperty(src, 'DUE');
       if (completed) {
-        const completionTime = src.COMPLETED;
-        if (completionTime) {
-          toDo.completionDate = mkTime(completionTime);
-        }
+        toDo.completionDate = getDateProperty(src, 'COMPLETED');
       }
 
       var notes = src.DESCRIPTION; // 'Time estimate: none\\nTags: none\\nLocation: none\\n\\n',
