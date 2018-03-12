@@ -203,8 +203,6 @@ var toDo;
 
     Object.keys(projects).forEach(projectName => {
       const project = projects[projectName];
-      var json = JSON.stringify(project);
-      fs.writeFileSync('out/' + projectName + '.json', json, 'utf8');
       fs.writeFileSync('out/' + projectName + '.js', script(project), 'utf8');
     });
   });
