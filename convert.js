@@ -160,6 +160,8 @@ var toDo;
       var tags = line[1].substr(6).split('\\, ');
       if (line[4] === '---') {
         const notes = line.slice(5);
+        // notes seems to be separated from the '---' by a blank line
+        if (notes[0].length === 0) notes.shift();
         Array.prototype.push.apply(toDo.notes, notes.map(tidyText));
       }
 
