@@ -41,6 +41,23 @@ function convert(rtmPath) {
     };
   }
 
+  function getDateField(src, fieldName) {
+    const { field, value } = getField(src, fieldName);
+    if (value) {
+      if (field === 'VALUE=DATE') {
+        return moment.utc(value, 'YYYYMMDD').toDate();
+      } else {
+        const parts = field.split('=');
+        if (parts[0] === 'TZID') {
+          return moment.tz(value, 'YYYYMMDDTHHmmss', parts[1]).toDate();
+        } else {
+          console.log(`unrecognised ${fieldName} type: '${field}'`);
+        }
+      }
+    }
+    return null;
+  }
+
   function mkDateStr(str) {
     return str.substr(0, 4) + '-' + str.substr(4, 2) + '-' + str.substr(6, 2);
   }
@@ -150,19 +167,7 @@ var toDo;
         status: completed ? 'completed' : 'open',
       };
 
-      const { field, value: due } = getField(src, 'DUE');
-      if (due) {
-        if (field === 'VALUE=DATE') {
-          toDo.dueDate = mkDate(due);
-        } else {
-          const parts = field.split('=');
-          if (parts[0] === 'TZID') {
-            toDo.dueDate = moment.tz(due, 'YYYYMMDDTHHmmss', parts[1]).toDate();
-          } else {
-            console.log(`unrecognised DUE type: '${field}'`);
-          }
-        }
-      }
+      toDo.dueDate = getDateField(src, 'DUE');
 
       if (completed) {
         const completionTime = src.COMPLETED;
