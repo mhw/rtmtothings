@@ -17,7 +17,8 @@
     "things3"
   ],
   "dependencies": {
-    "ical-toolkit": "^1.0.9"
+    "ical-toolkit": "^1.0.9",
+    "moment-timezone": "^0.5.14"
   },
   "bin": {
     "rtmtothings": "./convert.js"

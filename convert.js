@@ -3,6 +3,7 @@
 var fs = require('fs');
 var path = require('path');
 var icalToolkit = require('ical-toolkit');
+const moment = require('moment-timezone');
 
 var args = (function() {
   return process.argv.slice(2).reduce(
@@ -21,6 +22,24 @@ var args = (function() {
 function convert(rtmPath) {
   var icsText = fs.readFileSync(rtmPath, 'utf8');
   var projects = {};
+
+  function getField(src, field) {
+    const value = src[field];
+    if (value) return { field, value };
+    for (var prop in src) {
+      const parts = prop.split(';')
+      if (parts[0] === field) {
+        return {
+          field: parts[1],
+          value: src[prop],
+        };
+      }
+    }
+    return {
+      field: null,
+      value: null,
+    };
+  }
 
   function mkDateStr(str) {
     return str.substr(0, 4) + '-' + str.substr(4, 2) + '-' + str.substr(6, 2);
@@ -131,9 +150,18 @@ var toDo;
         status: completed ? 'completed' : 'open',
       };
 
-      const due = src['DUE;VALUE=DATE'];
+      const { field, value: due } = getField(src, 'DUE');
       if (due) {
-        toDo.dueDate = mkDate(due);
+        if (field === 'VALUE=DATE') {
+          toDo.dueDate = mkDate(due);
+        } else {
+          const parts = field.split('=');
+          if (parts[0] === 'TZID') {
+            toDo.dueDate = moment.tz(due, 'YYYYMMDDTHHmmss', parts[1]).toDate();
+          } else {
+            console.log(`unrecognised DUE type: '${field}'`);
+          }
+        }
       }
 
       if (completed) {
