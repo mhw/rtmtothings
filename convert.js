@@ -122,9 +122,9 @@ var toDo;
       if (toDo.completionDate) {
         s.push(`  completionDate: new Date(${toDo.completionDate.getTime()}),`);
       }
-      s.push(`  project,`);
       s.push(`});`);
-      s.push(`things.toDos.push(toDo);`);
+      s.push(`toDo.make();`);
+      s.push(`toDo.project = project;`)
       s.push(``);
     });
 
