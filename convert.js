@@ -103,7 +103,7 @@ var toDo;
 `,
     ];
 
-    project.items.forEach(toDo => {
+    project.items.forEach((toDo, i) => {
       s.push(`toDo = things.ToDo({`);
       s.push(`  name: ${JSON.stringify(toDo.name)},`);
       s.push(`  status: ${JSON.stringify(toDo.status)},`);
@@ -125,6 +125,7 @@ var toDo;
       s.push(`});`);
       s.push(`toDo.make();`);
       s.push(`toDo.project = project;`)
+      s.push(`console.log("${((i+1)/project.items.length*100).toFixed(2)}%");`)
       s.push(``);
     });
 
